@@ -42,7 +42,8 @@ class Settings(Singleton):
                 json.dump(self._data, settings_file, indent=4)
                 # SeedSignerOS makes removing the microsd possible, fsync forces persistent settings to disk
                 # without this, recent settings changes could be missing after the microsd card was removed
-                os.fsync(settings_file)
+                settings_file.flush()
+                os.sync(settings_file.fileno())
 
 
     def update(self, new_settings: dict, disable_missing_entries: bool = True):
