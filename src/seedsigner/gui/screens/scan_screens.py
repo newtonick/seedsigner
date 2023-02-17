@@ -18,7 +18,7 @@ from ..components import BaseComponent, Button, GUIConstants, Fonts, IconButton,
 @dataclass
 class ScanScreen(BaseScreen):
     decoder: DecodeQR = None
-    instructions_text: str = "< back  |  Scan a QR code"
+    instructions_text: str = None
     resolution: Tuple[int,int] = (480, 480)
     framerate: int = 12
     render_rect: Tuple[int,int,int,int] = None
@@ -28,6 +28,8 @@ class ScanScreen(BaseScreen):
         from seedsigner.hardware.camera import Camera
         # Initialize the base class
         super().__post_init__()
+
+        self.instructions_text = "< back  |  " + self.instructions_text
 
         self.camera = Camera.get_instance()
         self.camera.start_video_stream_mode(resolution=self.resolution, framerate=self.framerate, format="rgb")
