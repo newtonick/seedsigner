@@ -30,7 +30,8 @@ class ToolsMenuView(View):
         DICE = ("New seed", FontAwesomeIconConstants.DICE)
         KEYBOARD = ("Calc 12th/24th word", FontAwesomeIconConstants.KEYBOARD)
         EXPLORER = "Address Explorer"
-        button_data = [IMAGE, DICE, KEYBOARD, EXPLORER]
+        ADDRESS = "Verify address"
+        button_data = [IMAGE, DICE, KEYBOARD, EXPLORER, ADDRESS]
         screen = ButtonListScreen(
             title="Tools",
             is_button_text_centered=False,
@@ -52,6 +53,11 @@ class ToolsMenuView(View):
 
         elif button_data[selected_menu_num] == EXPLORER:
             return Destination(ToolsAddressExplorerSelectSourceView)
+
+        elif button_data[selected_menu_num] == ADDRESS:
+            from seedsigner.views.scan_views import ScanAddressView
+            return Destination(ScanAddressView)
+
 
 
 """****************************************************************************
@@ -424,7 +430,7 @@ class ToolsCalcFinalWordDoneView(View):
 ****************************************************************************"""
 class ToolsAddressExplorerSelectSourceView(View):
     def run(self):
-        SCAN_SEED = ("Scan a seed", FontAwesomeIconConstants.QRCODE)
+        SCAN_SEED = ("Scan a SeedQR", FontAwesomeIconConstants.QRCODE)
         SCAN_DESCRIPTOR = ("Scan wallet descriptor", FontAwesomeIconConstants.QRCODE)
         TYPE_12WORD = ("Enter 12-word seed", FontAwesomeIconConstants.KEYBOARD)
         TYPE_24WORD = ("Enter 24-word seed", FontAwesomeIconConstants.KEYBOARD)
@@ -465,9 +471,13 @@ class ToolsAddressExplorerSelectSourceView(View):
                 )
             )
 
-        elif button_data[selected_menu_num] in [SCAN_SEED, SCAN_DESCRIPTOR]:
-            from seedsigner.views.scan_views import ScanView
-            return Destination(ScanView)
+        elif button_data[selected_menu_num] == SCAN_SEED:
+            from seedsigner.views.scan_views import ScanSeedQRView
+            return Destination(ScanSeedQRView)
+
+        elif button_data[selected_menu_num] == SCAN_DESCRIPTOR:
+            from seedsigner.views.scan_views import ScanWalletDescriptorView
+            return Destination(ScanWalletDescriptorView)
 
         elif button_data[selected_menu_num] in [TYPE_12WORD, TYPE_24WORD]:
             from seedsigner.views.seed_views import SeedMnemonicEntryView

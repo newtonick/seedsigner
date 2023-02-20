@@ -22,8 +22,6 @@ from seedsigner.models.seed import InvalidSeedException, Seed
 from seedsigner.models.settings import Settings, SettingsConstants
 from seedsigner.models.settings_definition import SettingsDefinition
 from seedsigner.models.threads import BaseThread, ThreadsafeCounter
-from seedsigner.views.psbt_views import PSBTChangeDetailsView
-from seedsigner.views.scan_views import ScanView
 
 from .view import NotYetImplementedView, View, Destination, BackStackView, MainMenuView
 
@@ -93,8 +91,8 @@ class LoadSeedView(View):
             return Destination(BackStackView)
         
         if button_data[selected_menu_num] == SEED_QR:
-            from .scan_views import ScanView
-            return Destination(ScanView)
+            from .scan_views import ScanSeedQRView
+            return Destination(ScanSeedQRView)
         
         elif button_data[selected_menu_num] == TYPE_12WORD:
             self.controller.storage.init_pending_mnemonic(num_words=12)
@@ -405,9 +403,9 @@ class SeedOptionsView(View):
             return Destination(MainMenuView)
 
         if button_data[selected_menu_num] == SCAN_PSBT:
-            from seedsigner.views.scan_views import ScanView
+            from seedsigner.views.scan_views import ScanPSBTView
             self.controller.psbt_seed = self.controller.get_seed(self.seed_num)
-            return Destination(ScanView)
+            return Destination(ScanPSBTView)
 
         elif button_data[selected_menu_num] == VERIFY_ADDRESS:
             return Destination(SeedAddressVerificationView, view_args=dict(seed_num=self.seed_num))
@@ -1511,8 +1509,8 @@ class SeedSingleSigAddressVerificationSelectSeedView(View):
         self.controller.resume_main_flow = Controller.FLOW__VERIFY_SINGLESIG_ADDR
 
         if button_data[selected_menu_num] == SCAN_SEED:
-            from seedsigner.views.scan_views import ScanView
-            return Destination(ScanView)
+            from seedsigner.views.scan_views import ScanSeedQRView
+            return Destination(ScanSeedQRView)
 
         elif button_data[selected_menu_num] in [TYPE_12WORD, TYPE_24WORD]:
             from seedsigner.views.seed_views import SeedMnemonicEntryView
@@ -1737,7 +1735,8 @@ class LoadMultisigWalletDescriptorView(View):
         ).display()
 
         if button_data[selected_menu_num] == SCAN:
-            return Destination(ScanView)
+            from seedsigner.views.scan_views import ScanWalletDescriptorView
+            return Destination(ScanWalletDescriptorView)
 
         elif button_data[selected_menu_num] == CANCEL:
             if self.controller.resume_main_flow == Controller.FLOW__PSBT:
@@ -1785,6 +1784,7 @@ class MultisigWalletDescriptorView(View):
         
         elif button_data[selected_menu_num] == RETURN:
             # Jump straight back to PSBT change verification
+            from seedsigner.views.psbt_views import PSBTChangeDetailsView
             self.controller.resume_main_flow = None
             return Destination(PSBTChangeDetailsView, view_args=dict(change_address_num=0))
 

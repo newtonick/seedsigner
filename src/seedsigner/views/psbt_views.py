@@ -31,7 +31,7 @@ class PSBTSelectSeedView(View):
         
         seeds = self.controller.storage.seeds
 
-        SCAN_SEED = ("Scan a seed", FontAwesomeIconConstants.QRCODE)
+        SCAN_SEED = ("Scan a SeedQR", FontAwesomeIconConstants.QRCODE)
         TYPE_12WORD = ("Enter 12-word seed", FontAwesomeIconConstants.KEYBOARD)
         TYPE_24WORD = ("Enter 24-word seed", FontAwesomeIconConstants.KEYBOARD)
         button_data = []
@@ -70,8 +70,8 @@ class PSBTSelectSeedView(View):
         self.controller.resume_main_flow = Controller.FLOW__PSBT
 
         if button_data[selected_menu_num] == SCAN_SEED:
-            from seedsigner.views.scan_views import ScanView
-            return Destination(ScanView)
+            from seedsigner.views.scan_views import ScanSeedQRView
+            return Destination(ScanSeedQRView)
 
         elif button_data[selected_menu_num] in [TYPE_12WORD, TYPE_24WORD]:
             from seedsigner.views.seed_views import SeedMnemonicEntryView
