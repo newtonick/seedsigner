@@ -40,6 +40,10 @@ class Settings(Singleton):
         if self._data[SettingsConstants.SETTING__PERSISTENT_SETTINGS] == SettingsConstants.OPTION__ENABLED:
             with open(Settings.SETTINGS_FILENAME, 'w') as settings_file:
                 json.dump(self._data, settings_file, indent=4)
+                # SeedSignerOS makes removing the microsd possible, flush and then fsync forces persistent settings to disk
+                # without this, recent settings changes could be missing after the microsd card was removed
+                settings_file.flush()
+                os.fsync(settings_file.fileno())
 
 
     def update(self, new_settings: dict, disable_missing_entries: bool = True):
@@ -152,8 +156,11 @@ class Settings(Singleton):
             raise Exception(f"Unsupported SettingsEntry.type: {settings_entry.type}")
 
         display_names = []
-        for value in self._data[attr_name]:
-            display_names.append(settings_entry.get_selection_option_display_name_by_value(value))
+        # Iterate through the selection_options list in order to preserve intended sort
+        # order when adding which options are selected.
+        for value, display_name in settings_entry.selection_options:
+            if value in self._data[attr_name]:
+                display_names.append(display_name)
         return display_names
 
 
