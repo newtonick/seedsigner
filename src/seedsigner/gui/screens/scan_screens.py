@@ -1,16 +1,16 @@
 import time
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Tuple
 
 from seedsigner.gui import renderer
 from seedsigner.hardware.buttons import HardwareButtonsConstants
 from seedsigner.hardware.camera import Camera
-from seedsigner.models import DecodeQR, DecodeQRStatus
+from seedsigner.models.decode_qr import DecodeQR, DecodeQRStatus
 from seedsigner.models.threads import BaseThread
 
-from .screen import BaseScreen, BaseTopNavScreen, ButtonListScreen
-from ..components import BaseComponent, Button, GUIConstants, Fonts, IconButton, TextArea, calc_text_centering
+from .screen import BaseScreen, ButtonListScreen
+from ..components import GUIConstants, Fonts, TextArea
 
 
 
