@@ -161,6 +161,7 @@ class SettingsConstants:
     SETTING__MESSAGE_SIGNING = "message_signing"
     SETTING__PRIVACY_WARNINGS = "privacy_warnings"
     SETTING__DIRE_WARNINGS = "dire_warnings"
+    SETTING__QR_BRIGHTNESS_TIPS = "qr_brightness_tips"
     SETTING__PARTNER_LOGOS = "partner_logos"
 
     SETTING__DEBUG = "debug"
@@ -218,7 +219,7 @@ class SettingsEntry:
     visibility: str = SettingsConstants.VISIBILITY__GENERAL
     type: str = SettingsConstants.TYPE__ENABLED_DISABLED
     help_text: str = None
-    selection_options: List[str] = None
+    selection_options: list[tuple[str | int], str] = None
     default_value: Any = None
 
     def __post_init__(self):
@@ -440,7 +441,7 @@ class SettingsDefinition:
                       type=SettingsConstants.TYPE__SELECT_1,
                       visibility=SettingsConstants.VISIBILITY__ADVANCED,
                       selection_options=SettingsConstants.ALL_CAMERA_ROTATIONS,
-                      default_value=SettingsConstants.CAMERA_ROTATION__0),
+                      default_value=SettingsConstants.CAMERA_ROTATION__180),
 
         SettingsEntry(category=SettingsConstants.CATEGORY__FEATURES,
                       attr_name=SettingsConstants.SETTING__COMPACT_SEEDQR,
@@ -469,6 +470,12 @@ class SettingsDefinition:
         SettingsEntry(category=SettingsConstants.CATEGORY__FEATURES,
                       attr_name=SettingsConstants.SETTING__DIRE_WARNINGS,
                       display_name="Show dire warnings",
+                      visibility=SettingsConstants.VISIBILITY__ADVANCED,
+                      default_value=SettingsConstants.OPTION__ENABLED),
+
+        SettingsEntry(category=SettingsConstants.CATEGORY__FEATURES,
+                      attr_name=SettingsConstants.SETTING__QR_BRIGHTNESS_TIPS,
+                      display_name="Show QR brightness tips",
                       visibility=SettingsConstants.VISIBILITY__ADVANCED,
                       default_value=SettingsConstants.OPTION__ENABLED),
 

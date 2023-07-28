@@ -17,7 +17,7 @@
 
 # Project Summary
 
-The goal of SeedSigner is to lower the cost and complexity of Bitcoin multi-signature wallet use. To accomplish this goal, SeedSigner offers anyone the opportunity to build a verifiably air-gapped, stateless Bitcoin signing device using inexpensive, publicly available hardware components (usually < $50). SeedSigner helps users save with Bitcoin by assisting with trustless private key generation and multi-signature wallet setup, and helps users transact with Bitcoin via a secure, air-gapped QR-exchange signing model.
+The goal of SeedSigner is to lower the cost and complexity of Bitcoin multi-signature wallet use. To accomplish this goal, SeedSigner offers anyone the opportunity to build a verifiably air-gapped, stateless Bitcoin signing device using inexpensive, publicly available hardware components (usually < $50). SeedSigner helps users save with Bitcoin by assisting with trustless private key generation and multisignature (aka "multisig") wallet setup, and helps users transact with Bitcoin via a secure, air-gapped QR-exchange signing model.
 
 Additional information about the project can be found at [SeedSigner.com](https://seedsigner.com).
 
@@ -26,20 +26,22 @@ You can follow [@SeedSigner](https://twitter.com/SeedSigner) on Twitter for the 
 If you have specific questions about the project, our [Telegram Group](https://t.me/joinchat/GHNuc_nhNQjLPWsS) is a great place to ask them.
 
 ### Feature Highlights:
-* Calculate word 12/24 of a BIP39 seed phrase
-* Create a 24-word BIP39 seed phrase with 99 dice rolls
-* Create a 24-word BIP39 seed phrase by taking a digital photo 
-* Temporarily store up to 3 seed phrases while device is powered
-* Guided interface to manually create a SeedQR for instant input [(demo video here)](https://youtu.be/c1-PqTNx1vc)
-* BIP39 passphrase / word 25 support
-* Native Segwit Multisig XPUB generation w/ QR display
-* Scan and parse transaction data from animated QR codes
+* Calculate the final word (aka checksum) of a 12- or 24-word BIP39 seed phrase
+* Create a 24-word BIP39 seed phrase with 99 dice rolls or a 12-word with 50 rolls [(Verifying dice seed generation)](docs/dice_verification.md)
+* Create a 12- or 24-word BIP39 seed phrase via image entropy from the onboard camera 
+* Temporarily stores seeds in memory while the device is powered; all memory is wiped when power is removed
+* SD card removable after boot to ensure no secret data can be written to it
+* Guided interface to manually transcribe a seed to the SeedQR format for instant seed loading [(demo video here)](https://youtu.be/c1-PqTNx1vc)
+* BIP39 passphrase (aka "word 25") support
+* Native Segwit Multisig XPUB generation
+* PSBT-compliant; scan and parse transaction data from animated QR codes
 * Sign transactions & transfer XPUB data using animated QR codes [(demo video here)](https://youtu.be/LPqvdQ2gSzs)
-* Live preview during photo-to-seed and QR scanning UX
+* Live preview during image entropy seed generation and QR scanning UX
 * Optimized seed word entry interface
 * Support for Bitcoin Mainnet & Testnet
 * Support for custom user-defined derivation paths
 * On-demand receive address verification
+* Address Explorer for single sig and multisig wallets
 * User-configurable QR code display density
 * Responsive, event-driven user interface
 
@@ -52,10 +54,10 @@ If you have specific questions about the project, our [Telegram Group](https://t
 * If you think SeedSigner adds value to the Bitcoin ecosystem, please help us spread the word! (tweets, pics, videos, etc.)
 
 ### Planned Upcoming Improvements / Functionality:
-* Single-sig and multi-sig change address verification
-* Re-imagined, graphically-focused user interface
 * Multi-language support
-* Customized Linux live-boot OS to allow MicroSD card removal
+* Significantly faster boot time
+* Reproducible builds
+* Port to MicroPython to broaden the range of compatible hardware to include low-cost microcontrollers
 * Other optimizations based on user feedback!
 
 ---------------
@@ -204,14 +206,14 @@ shasum -a 256 --ignore-missing --check seedsigner.0.6.*.sha256
 
 **On Windows (inside Powershell):** Run this command
 ```
-CertUtil -hashfile  seedsigner.0.6.0.sha256 SHA256 | findstr /v "hash"
+CertUtil -hashfile  seedsigner_os.0.6.0.Insert_Your_Pi_Models_binary_here_For_Example_pi02w.img SHA256 
 ```
 On Windows, you must then manually compare the resulting file hash value to the corresponding hash value shown inside the .SHA256 cleartext file.
  <BR>
 
 Wait up to 30 seconds for the command to complete, and it should display:
 ```
-seedsigner_os.0.6.x[Your_Pi_Model_For_Example:pi02w].img: OK
+seedsigner_os.0.6.x.[Your_Pi_Model_For_Example:pi02w].img: OK
 ```
 **If you receive the "OK" message** for your **seedsigner_os.0.6.x.[Your_Pi_Model_For_Example:pi02w].img file**, as shown above, then your verification is fully complete!  
 **All of your downloaded files have now been confirmed as both authentic and unaltered!** You can proceed to create/write your MicroSD card😄😄 !!     
@@ -241,7 +243,7 @@ Either of the Etcher or Pi Imager software is recommended.  Some SeedSigner user
 The writing and verify steps are very quick from version 0.6.0 upwards, so please pay close attention to your screen. 
 Make sure to set any write-protection physical slider on the MicroSD Card Adapter to UN-locked.  
 You also don’t need to pre-format the MicroSD beforehand.  You *dont* need to unzip any .zip file beforehand.
-Current Etcher and Pi Imager software will perform a verify action (by default) to make sure the card was written successfully! Watching for that verify step to complete successfully can save you a lot of headaches if you later need to troubleshoot issues where your SeedSigner device doesn’t boot up at power on.   
+Current Etcher and Pi Imager software will perform a verify action (by default) to make sure the card was written successfully! Watching for that verify step to complete successfully, can save you a lot of headaches if you later need to troubleshoot issues where your SeedSigner device doesn’t boot up at power on.   
 Writing the MicroSd card is also known as flashing.  
 It will overwrite everything on the MicroSD card.  
 If the one application fails for you, then please try again using our other recommended application.  
