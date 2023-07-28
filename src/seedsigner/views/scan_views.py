@@ -7,8 +7,7 @@ from seedsigner.gui.screens.screen import RET_CODE__BACK_BUTTON
 from seedsigner.gui.screens import scan_screens
 from seedsigner.models import DecodeQR, Seed
 from seedsigner.models.settings import SettingsConstants
-
-from .view import (BackStackView, MainMenuView, NotYetImplementedView, View, Destination,
+from seedsigner.views.view import (BackStackView, MainMenuView, NotYetImplementedView, View, Destination,
     OptionDisabledView)
 
 

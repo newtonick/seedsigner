@@ -16,7 +16,7 @@ from seedsigner.models.settings_definition import SettingsConstants, SettingsDef
 from .screen import RET_CODE__BACK_BUTTON, BaseScreen, BaseTopNavScreen, ButtonListScreen, KeyboardScreen, WarningEdgesMixin
 from ..components import (Button, FontAwesomeIconConstants, Fonts, FormattedAddress, IconButton,
     IconTextLine, SeedSignerCustomIconConstants, TextArea, GUIConstants,
-    calc_text_centering)
+    calc_text_centering, calc_multipage_text)
 
 from seedsigner.gui.keyboard import Keyboard, TextEntryDisplay
 from seedsigner.hardware.buttons import HardwareButtons, HardwareButtonsConstants
@@ -1502,12 +1502,54 @@ class MultisigWalletDescriptorScreen(ButtonListScreen):
 
 
 @dataclass
-class SeedSignMessageScreen(ButtonListScreen):
+class SeedSignMessageConfirmMessageScreen(ButtonListScreen):
+    sign_message_data: dict = None
+    page_num: int = None
+
+    def __post_init__(self):
+        renderer = Renderer.get_instance()
+        start_y = GUIConstants.TOP_NAV_HEIGHT + GUIConstants.COMPONENT_PADDING
+        end_y = renderer.canvas_height - GUIConstants.BUTTON_HEIGHT - 2*GUIConstants.COMPONENT_PADDING
+        message_height = end_y - start_y
+
+        if "paged_messages" not in self.sign_message_data:
+            self.sign_message_data["paged_messages"] = calc_multipage_text(
+                text=self.sign_message_data["message"],
+                width=renderer.canvas_width - 2*GUIConstants.EDGE_PADDING,
+                height=message_height,
+                font_name=GUIConstants.BODY_FONT_NAME,
+                font_size=GUIConstants.BODY_FONT_SIZE,
+            )
+        
+        if self.page_num >= len(self.sign_message_data["paged_messages"]):
+            raise Exception("Bug in paged_messages calculation")
+
+        if len(self.sign_message_data["paged_messages"]) == 1:
+            self.title = "Review Message"
+        else:
+            self.title = f"""Message (pt {self.page_num + 1}/{len(self.sign_message_data["paged_messages"])})"""
+        self.is_bottom_list = True
+        self.is_button_text_centered = True
+        self.button_data = ["Next"]
+        super().__post_init__()
+
+        message_display = TextArea(
+            text=self.sign_message_data["paged_messages"][self.page_num],
+            is_text_centered=False,
+            allow_text_overflow=True,
+            screen_y=start_y,
+        )
+        self.components.append(message_display)
+
+
+
+@dataclass
+class SeedSignMessageConfirmAddressScreen(ButtonListScreen):
     derivation_path: int = None
     message: int = None
 
     def __post_init__(self):
-        self.title = "Sign Message"
+        self.title = "Confirm Address"
         self.is_bottom_list = True
         self.is_button_text_centered = True
         self.button_data = ["Sign"]
