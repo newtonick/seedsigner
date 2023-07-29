@@ -12,7 +12,7 @@ from seedsigner.models.psbt_parser import PSBTParser
 from seedsigner.models.qr_type import QRType
 from seedsigner.models.settings import SettingsConstants
 from seedsigner.gui.screens.psbt_screens import PSBTOverviewScreen, PSBTMathScreen, PSBTAddressDetailsScreen, PSBTChangeDetailsScreen, PSBTFinalizeScreen
-from seedsigner.gui.screens.screen import (RET_CODE__BACK_BUTTON, ButtonListScreen, DireWarningScreen, QRDisplayScreen)
+from seedsigner.gui.screens.screen import (RET_CODE__BACK_BUTTON, ButtonListScreen, DireWarningScreen, QRDisplayScreen, WarningScreen)
 
 from .view import BackStackView, MainMenuView, NotYetImplementedView, View, Destination
 
@@ -24,29 +24,30 @@ class PSBTSelectSeedView(View):
     SCAN_SEED = ("Scan a seed", FontAwesomeIconConstants.QRCODE)
     TYPE_12WORD = ("Enter 12-word seed", FontAwesomeIconConstants.KEYBOARD)
     TYPE_24WORD = ("Enter 24-word seed", FontAwesomeIconConstants.KEYBOARD)
-    button_data = []
-    
-    def run(self):
+    button_data = [SCAN_SEED, TYPE_12WORD, TYPE_24WORD]
+
+    def __init__(self):
+        super().__init__()
         # Note: we can't just autoroute to the PSBT Overview because we might have a
         # multisig where we want to sign with more than one key on this device.
         if not self.controller.psbt:
             # Shouldn't be able to get here
             raise Exception("No PSBT currently loaded")
-        
-        seeds = self.controller.storage.seeds
 
-        for seed in seeds:
+        seed_buttons = []
+        for seed in self.controller.storage.seeds:
             button_str = seed.get_fingerprint(self.settings.get_value(SettingsConstants.SETTING__NETWORK))
             if not PSBTParser.has_matching_input_fingerprint(psbt=self.controller.psbt, seed=seed, network=self.settings.get_value(SettingsConstants.SETTING__NETWORK)):
                 # Doesn't look like this seed can sign the current PSBT
                 button_str += " (?)"
 
-            self.button_data.append((button_str, SeedSignerCustomIconConstants.FINGERPRINT, "blue"))
+            seed_buttons.append((button_str, SeedSignerCustomIconConstants.FINGERPRINT, "blue"))
 
-        self.button_data.append(self.SCAN_SEED)
-        self.button_data.append(self.TYPE_12WORD)
-        self.button_data.append(self.TYPE_24WORD)
+        if seed_buttons:
+            self.button_data = seed_buttons + PSBTSelectSeedView.button_data
 
+
+    def run(self):
         if self.controller.psbt_seed:
              if PSBTParser.has_matching_input_fingerprint(psbt=self.controller.psbt, seed=self.controller.psbt_seed, network=self.settings.get_value(SettingsConstants.SETTING__NETWORK)):
                  # skip the seed prompt if a seed was previous selected and has matching input fingerprint
@@ -62,6 +63,8 @@ class PSBTSelectSeedView(View):
         if selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
 
+        seeds = self.controller.storage.seeds
+
         if len(seeds) > 0 and selected_menu_num < len(seeds):
             # User selected one of the n seeds
             self.controller.psbt_seed = self.controller.get_seed(selected_menu_num)
@@ -74,9 +77,9 @@ class PSBTSelectSeedView(View):
             from seedsigner.views.scan_views import ScanView
             return Destination(ScanView)
 
-        elif button_data[selected_menu_num] in [self.TYPE_12WORD, self.TYPE_24WORD]:
+        elif self.button_data[selected_menu_num] in [self.TYPE_12WORD, self.TYPE_24WORD]:
             from seedsigner.views.seed_views import SeedMnemonicEntryView
-            if button_data[selected_menu_num] == self.TYPE_12WORD:
+            if self.button_data[selected_menu_num] == self.TYPE_12WORD:
                 self.controller.storage.init_pending_mnemonic(num_words=12)
             else:
                 self.controller.storage.init_pending_mnemonic(num_words=24)
@@ -244,47 +247,45 @@ class PSBTAddressDetailsView(View):
         Shows the recipient's address and amount they will receive
     """
     NEXT = "Next"
-    button_data = []
+    button_data = None
     
     def __init__(self, address_num):
         super().__init__()
         self.address_num = address_num
+        self.psbt_parser = self.controller.psbt_parser
 
-
-    def run(self):
-        psbt_parser: PSBTParser = self.controller.psbt_parser
-
-        if not psbt_parser:
+        if not self.psbt_parser:
             # Should not be able to get here
-            return Destination(MainMenuView)
+            raise Exception("Routing error")
 
-        title = "Will Send"
-        if psbt_parser.num_destinations > 1:
+        if self.psbt_parser.num_destinations > 1:
             title += f" (#{self.address_num + 1})"
 
-        if self.address_num < psbt_parser.num_destinations - 1:
+        if self.address_num < self.psbt_parser.num_destinations - 1:
             self.NEXT = "Next Recipient"
         else:
             self.NEXT = "Next"
-        self.button_data.append(self.NEXT)
+        self.button_data = [self.NEXT]
 
+
+    def run(self):
         selected_menu_num = self.run_screen(
             PSBTAddressDetailsScreen,
-            title=title,
+            title="Will Send",
             button_data=self.button_data,
-            address=psbt_parser.destination_addresses[self.address_num],
-            amount=psbt_parser.destination_amounts[self.address_num],
+            address=self.psbt_parser.destination_addresses[self.address_num],
+            amount=self.psbt_parser.destination_amounts[self.address_num],
         )
         
         if selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
 
         if self.button_data[selected_menu_num] == self.NEXT:
-            if self.address_num < len(psbt_parser.destination_addresses) - 1:
+            if self.address_num < len(self.psbt_parser.destination_addresses) - 1:
                 # Show the next receive addr
                 return Destination(PSBTAddressDetailsView, view_args={"address_num": self.address_num + 1})
 
-            elif psbt_parser.change_amount > 0:
+            elif self.psbt_parser.change_amount > 0:
                 # Move on to display change
                 return Destination(PSBTChangeDetailsView, view_args={"change_address_num": 0})
 
@@ -486,6 +487,9 @@ class PSBTFinalizeView(View):
             button_data=self.button_data
         )
 
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+
         if self.button_data[selected_menu_num] == self.APPROVE_PSBT:
             # Sign PSBT
             sig_cnt = PSBTParser.sig_count(psbt)
@@ -501,9 +505,6 @@ class PSBTFinalizeView(View):
             else:
                 self.controller.psbt = trimmed_psbt
                 return Destination(PSBTSignedQRDisplayView)
-
-        if selected_menu_num == RET_CODE__BACK_BUTTON:
-            return Destination(BackStackView)
 
 
 
