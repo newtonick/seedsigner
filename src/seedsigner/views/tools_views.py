@@ -55,6 +55,11 @@ class ToolsMenuView(View):
         elif button_data[selected_menu_num] == self.EXPLORER:
             return Destination(ToolsAddressExplorerSelectSourceView)
 
+        elif button_data[selected_menu_num] == ADDRESS:
+            from seedsigner.views.scan_views import ScanAddressView
+            return Destination(ScanAddressView)
+
+
 
 """****************************************************************************
     Image entropy Views
@@ -431,7 +436,6 @@ class ToolsAddressExplorerSelectSourceView(View):
     SCAN_DESCRIPTOR = ("Scan wallet descriptor", FontAwesomeIconConstants.QRCODE)
     TYPE_12WORD = ("Enter 12-word seed", FontAwesomeIconConstants.KEYBOARD)
     TYPE_24WORD = ("Enter 24-word seed", FontAwesomeIconConstants.KEYBOARD)
-
 
     def run(self):
         seeds = self.controller.storage.seeds
