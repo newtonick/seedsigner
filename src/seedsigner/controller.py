@@ -305,6 +305,7 @@ class Controller(Singleton):
                 next_destination = initial_destination
             else:
                 next_destination = Destination(MainMenuView)
+
             while True:
                 # Destination(None) is a special case; render the Home screen
                 if next_destination.View_cls is None:
