@@ -1,6 +1,7 @@
 import time
 
 from dataclasses import dataclass
+from PIL import Image, ImageDraw
 from typing import Tuple
 
 from seedsigner.gui import renderer
