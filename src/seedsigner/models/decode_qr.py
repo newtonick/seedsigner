@@ -1,3 +1,5 @@
+print("decode_qr.py")
+
 import base64
 import json
 import logging
@@ -9,14 +11,13 @@ from embit import psbt, bip39
 from pyzbar import pyzbar
 from pyzbar.pyzbar import ZBarSymbol
 from urtypes.crypto import PSBT as UR_PSBT
-from urtypes.crypto import Account, HDKey, Output, Keypath, PathComponent, SCRIPT_EXPRESSION_TAG_MAP
+from urtypes.crypto import Account, Output
 from urtypes.bytes import Bytes
 
 from seedsigner.helpers.ur2.ur_decoder import URDecoder
-from seedsigner.models.psbt_parser import PSBTParser
-
-from . import QRType, Seed
-from .settings import SettingsConstants
+from seedsigner.models.qr_type import QRType
+from seedsigner.models.seed import Seed
+from seedsigner.models.settings import SettingsConstants
 
 
 logger = logging.getLogger(__name__)
