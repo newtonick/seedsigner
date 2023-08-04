@@ -48,8 +48,6 @@ class FlowBasedTestException(Exception):
     pass
 
 
-<<<<<<< Updated upstream
-=======
 class BackgroundImportThread(BaseThread):
     def run(self):
         start = time.time()
@@ -90,8 +88,6 @@ class BackgroundImportThread(BaseThread):
 
         print("Total BackgroundImportThread import time:", time.time() - start)
 
-
->>>>>>> Stashed changes
 
 class Controller(Singleton):
     """
