@@ -53,6 +53,8 @@ class ScanScreen(BaseScreen):
         # Initialize the base class
         super().__post_init__()
 
+        self.instructions_text = "< back  |  " + self.instructions_text
+
         self.camera = Camera.get_instance()
         self.camera.start_video_stream_mode(resolution=self.resolution, framerate=self.framerate, format="rgb")
 
