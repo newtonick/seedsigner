@@ -14,6 +14,7 @@ from ..components import (Button, FontAwesomeIconConstants, Fonts, FormattedAddr
     IconTextLine, SeedSignerCustomIconConstants, TextArea, GUIConstants,
     reflow_text_into_pages)
 
+
 from seedsigner.gui.keyboard import Keyboard, TextEntryDisplay
 from seedsigner.hardware.buttons import HardwareButtons, HardwareButtonsConstants
 

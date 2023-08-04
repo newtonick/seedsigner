@@ -1,3 +1,4 @@
+print("embit_utils.py")
 import embit
 
 from binascii import b2a_base64
