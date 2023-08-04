@@ -1,3 +1,12 @@
+print("controller.py")
+
+import time
+
+from seedsigner.models.threads import BaseThread
+
+start = time.time()
+print("Starting Controller import...")
+
 import logging
 import traceback
 import os
@@ -82,9 +91,10 @@ class BackgroundImportThread(BaseThread):
         time_import('seedsigner.views.psbt_views')
 
         # Lowest priority costly initializations
-        # time_import('picamera')
+        time_import('picamera')
         # time_import('picamera.array')
-        # time_import('seedsigner.hardware.pivideostream')
+        time_import('seedsigner.hardware.camera')
+        time_import('seedsigner.hardware.pivideostream')
 
         print("Total BackgroundImportThread import time:", time.time() - start)
 
