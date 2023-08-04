@@ -48,6 +48,50 @@ class FlowBasedTestException(Exception):
     pass
 
 
+<<<<<<< Updated upstream
+=======
+class BackgroundImportThread(BaseThread):
+    def run(self):
+        start = time.time()
+        from importlib import import_module
+
+        # import seedsigner.hardware.buttons # slowly imports GPIO along the way
+
+        def time_import(module_name):
+            last = time.time()
+            import_module(module_name)
+            print(time.time() - last, module_name)
+
+        time_import('embit')
+        time_import('seedsigner.helpers.embit_utils')
+
+        # Do costly initializations
+        time_import('seedsigner.models.seed_storage')
+        from seedsigner.models.seed_storage import SeedStorage
+        Controller.get_instance()._storage = SeedStorage()
+
+        # Get MainMenuView ready to respond quickly
+        time_import('seedsigner.views.scan_views')
+
+        time_import('seedsigner.views.seed_views')
+
+        time_import('seedsigner.views.tools_views')
+
+        time_import('seedsigner.views.settings_views')
+        
+        time_import('seedsigner.views.view')
+        
+        time_import('seedsigner.views.psbt_views')
+
+        # Lowest priority costly initializations
+        # time_import('picamera')
+        # time_import('picamera.array')
+        # time_import('seedsigner.hardware.pivideostream')
+
+        print("Total BackgroundImportThread import time:", time.time() - start)
+
+
+>>>>>>> Stashed changes
 
 class Controller(Singleton):
     """
