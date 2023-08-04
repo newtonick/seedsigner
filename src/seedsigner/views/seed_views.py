@@ -70,6 +70,95 @@ class SeedsMenuView(View):
 
 
 
+class SeedSelectSeedView(View):
+    """
+    Reusable seed selection UI. Prompts the user to select amongst the already-loaded
+    seeds OR to load a seed.
+
+    * `flow`: indicates which user flow is in progress during seed selection (e.g.
+                verify single sig addr or sign message).
+    """
+    SCAN_SEED = ("Scan a seed", FontAwesomeIconConstants.QRCODE)
+    TYPE_12WORD = ("Enter 12-word seed", FontAwesomeIconConstants.KEYBOARD)
+    TYPE_24WORD = ("Enter 24-word seed", FontAwesomeIconConstants.KEYBOARD)
+    button_data = []
+
+
+    def __init__(self, flow: str = Controller.FLOW__VERIFY_SINGLESIG_ADDR):
+        super().__init__()
+        self.flow = flow
+
+
+    def run(self):
+        seeds = self.controller.storage.seeds
+
+        if self.flow == Controller.FLOW__VERIFY_SINGLESIG_ADDR:
+            title = "Verify Address"
+            if not seeds:
+                text = "Load the seed to verify"
+            else: 
+                text = "Select seed to verify"
+
+        elif self.flow == Controller.FLOW__SIGN_MESSAGE:
+            title = "Sign Message"
+            if not seeds:
+                text = "Load the seed to sign with"
+            else:
+                text = "Select seed to sign with"
+
+        else:
+            raise Exception(f"Unsupported `flow` specified: {self.flow}")
+
+        self.button_data = []
+        for seed in seeds:
+            button_str = seed.get_fingerprint(self.settings.get_value(SettingsConstants.SETTING__NETWORK))
+            
+            if seed.passphrase is not None:
+                # TODO: Include lock icon on right side of button
+                pass
+            self.button_data.append((button_str, SeedSignerCustomIconConstants.FINGERPRINT, "blue"))
+        
+        self.button_data.append(self.SCAN_SEED)
+        self.button_data.append(self.TYPE_12WORD)
+        self.button_data.append(self.TYPE_24WORD)
+
+        selected_menu_num = self.run_screen(
+            seed_screens.SeedSelectSeedScreen,
+            title=title,
+            text=text,
+            is_button_text_centered=False,
+            button_data=self.button_data
+        )
+
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+        
+        if len(seeds) > 0 and selected_menu_num < len(seeds):
+            # User selected one of the n seeds
+            view_args = dict(seed_num=selected_menu_num)
+            if self.flow == Controller.FLOW__VERIFY_SINGLESIG_ADDR:
+                return Destination(SeedAddressVerificationView, view_args=view_args)
+
+            elif self.flow == Controller.FLOW__SIGN_MESSAGE:
+                self.controller.sign_message_data["seed_num"] = selected_menu_num
+                return Destination(SeedSignMessageConfirmMessageView)
+
+        self.controller.resume_main_flow = self.flow
+
+        if self.button_data[selected_menu_num] == self.SCAN_SEED:
+            from seedsigner.views.scan_views import ScanView
+            return Destination(ScanView)
+
+        elif self.button_data[selected_menu_num] in [self.TYPE_12WORD, self.TYPE_24WORD]:
+            from seedsigner.views.seed_views import SeedMnemonicEntryView
+            if self.button_data[selected_menu_num] == self.TYPE_12WORD:
+                self.controller.storage.init_pending_mnemonic(num_words=12)
+            else:
+                self.controller.storage.init_pending_mnemonic(num_words=24)
+            return Destination(SeedMnemonicEntryView)
+
+
+
 """****************************************************************************
     Loading seeds, passphrases, etc
 ****************************************************************************"""
@@ -292,7 +381,7 @@ class SeedReviewPassphraseView(View):
             seed_num = self.controller.storage.finalize_pending_seed()
             return Destination(SeedOptionsView, view_args={"seed_num": seed_num}, clear_history=True)
             
-            
+
             
 class SeedDiscardView(View):
     KEEP = "Keep Seed"
@@ -346,6 +435,7 @@ class SeedOptionsView(View):
     EXPLORER = "Address Explorer"
     BACKUP = ("Backup Seed", None, None, None, SeedSignerCustomIconConstants.SMALL_CHEVRON_RIGHT)
     BIP85_CHILD_SEED = "BIP-85 Child Seed"
+    SIGN_MESSAGE = "Sign Message"
     DISCARD = ("Discard Seed", None, None, "red")
 
 
@@ -369,6 +459,10 @@ class SeedOptionsView(View):
             # But don't cancel the `resume_main_flow` as we'll still need that after
             # derivation path is specified.
             return Destination(SeedExportXpubScriptTypeView, view_args=dict(seed_num=self.seed_num, sig_type=SettingsConstants.SINGLE_SIG), skip_current_view=True)
+
+        elif self.controller.resume_main_flow == Controller.FLOW__SIGN_MESSAGE:
+            self.controller.sign_message_data["seed_num"] = self.seed_num
+            return Destination(SeedSignMessageConfirmMessageView, skip_current_view=True)
 
         if self.controller.psbt:
             if PSBTParser.has_matching_input_fingerprint(self.controller.psbt, self.seed, network=self.settings.get_value(SettingsConstants.SETTING__NETWORK)):
@@ -396,8 +490,11 @@ class SeedOptionsView(View):
         if self.settings.get_value(SettingsConstants.SETTING__BIP85_CHILD_SEEDS) == SettingsConstants.OPTION__ENABLED:
             button_data.append(self.BIP85_CHILD_SEED)
 
+        if self.settings.get_value(SettingsConstants.SETTING__MESSAGE_SIGNING) == SettingsConstants.OPTION__ENABLED:
+            button_data.append(self.SIGN_MESSAGE)
+
         button_data.append(self.DISCARD)
-        
+
         selected_menu_num = self.run_screen(
             seed_screens.SeedOptionsScreen,
             button_data=button_data,
@@ -430,6 +527,12 @@ class SeedOptionsView(View):
         elif button_data[selected_menu_num] == self.BIP85_CHILD_SEED:
             return Destination(SeedBIP85ApplicationModeView, view_args={"seed_num": self.seed_num})
 
+        elif button_data[selected_menu_num] == self.SIGN_MESSAGE:
+            from seedsigner.views.scan_views import ScanView
+            self.controller.sign_message_data = dict(seed_num=self.seed_num)
+            self.controller.resume_main_flow = Controller.FLOW__SIGN_MESSAGE
+            return Destination(ScanView)
+            
         elif button_data[selected_menu_num] == self.DISCARD:
             return Destination(SeedDiscardView, view_args=dict(seed_num=self.seed_num))
 
@@ -1503,7 +1606,7 @@ class AddressVerificationSigTypeView(View):
         
         elif button_data[selected_menu_num] == SINGLE_SIG:
             sig_type = SettingsConstants.SINGLE_SIG
-            destination = Destination(SeedSingleSigAddressVerificationSelectSeedView)
+            destination = Destination(SeedSelectSeedView, view_args=dict(flow=Controller.FLOW__VERIFY_SINGLESIG_ADDR))
 
         elif button_data[selected_menu_num] == MULTISIG:
             sig_type = SettingsConstants.MULTISIG
@@ -1775,7 +1878,8 @@ class AddressVerificationSuccessView(View):
 
         LargeIconStatusScreen(
             status_headline="Address Verified",
-            text=f"""{address[:7]} = {source}'s {"change" if verified_index_is_change else "receive"} address #{verified_index}."""
+            text=f"""{address[:7]} = {source}'s {"change" if verified_index_is_change else "receive"} address #{verified_index}.""",
+            show_back_button=False,
         ).display()
 
         return Destination(MainMenuView)
@@ -1854,3 +1958,149 @@ class MultisigWalletDescriptorView(View):
             return Destination(ToolsAddressExplorerAddressTypeView)
 
         return Destination(MainMenuView)
+
+
+
+"""****************************************************************************
+    Sign Message Views
+****************************************************************************"""
+class SeedSignMessageStartView(View):
+    """
+    Routes users straight through to the "Sign" screen if a signing `seed_num` has
+    already been selected. Otherwise routes to `SeedSelectSeedView` to select or
+    load a seed first.
+    """
+    def __init__(self, derivation_path: str, message: str):
+        super().__init__()
+        self.derivation_path = derivation_path
+        self.message = message
+
+        data = self.controller.sign_message_data
+        if not data:
+            data = {}
+            self.controller.sign_message_data = data
+        data["derivation_path"] = derivation_path
+        data["message"] = message
+
+        # May be None
+        self.seed_num = data.get("seed_num")
+    
+
+    def run(self):
+        if self.seed_num is not None:
+            # We already know which seed we're signing with
+            return Destination(SeedSignMessageConfirmMessageView, skip_current_view=True)
+        else:
+            return Destination(SeedSelectSeedView, view_args=dict(flow=Controller.FLOW__SIGN_MESSAGE), skip_current_view=True)
+
+
+
+class SeedSignMessageConfirmMessageView(View):
+    def __init__(self, page_num: int = 0):
+        super().__init__()
+        self.page_num = page_num  # Note: zero-indexed numbering!
+
+        self.data = self.controller.sign_message_data
+        self.seed_num = self.data.get("seed_num")
+        if self.seed_num is None:
+            raise Exception("Routing error: seed_num hasn't been set")
+
+
+    def run(self):
+        from seedsigner.gui.screens.seed_screens import SeedSignMessageConfirmMessageScreen
+
+        selected_menu_num = self.run_screen(
+            SeedSignMessageConfirmMessageScreen,
+            page_num=self.page_num,
+        )
+
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
+            if self.page_num == 0:
+                # We're exiting this flow entirely
+                self.controller.resume_main_flow = None
+                self.controller.sign_message_data = None
+            return Destination(BackStackView)
+
+        # User clicked "Next"
+        if self.page_num == len(self.controller.sign_message_data["paged_message"]) - 1:
+            # We've reached the end of the paged message
+            return Destination(SeedSignMessageConfirmAddressView)
+        else:
+            return Destination(SeedSignMessageConfirmMessageView, view_args=dict(page_num=self.page_num + 1))
+
+
+
+class SeedSignMessageConfirmAddressView(View):
+    def __init__(self):
+        super().__init__()
+        data = self.controller.sign_message_data
+        self.seed_num = data.get("seed_num")
+        self.derivation_path = data.get("derivation_path")
+
+        if self.seed_num is None or not self.derivation_path:
+            raise Exception("Routing error: sign_message_data hasn't been set")
+
+        # calculate the actual receive address
+        seed = self.controller.storage.seeds[self.seed_num]
+        addr_format = embit_utils.parse_derivation_path(self.derivation_path)
+        if not addr_format["clean_match"]:
+            raise Exception("Signing messages for custom derivation paths not supported")
+
+        if addr_format["network"] != SettingsConstants.MAINNET:
+            # We're in either Testnet or Regtest or...?
+            if self.settings.get_value(SettingsConstants.SETTING__NETWORK) in [SettingsConstants.TESTNET, SettingsConstants.REGTEST]:
+                addr_format["network"] = self.settings.get_value(SettingsConstants.SETTING__NETWORK)
+            else:
+                raise Exception(f"Current network setting ({self.settings.get_value_display_name(SettingsConstants.SETTING__NETWORK)}) doesn't match {self.derivation_path}")
+
+        xpub = seed.get_xpub(wallet_path=self.derivation_path, network=addr_format["network"])
+        embit_network = embit_utils.get_embit_network_name(addr_format["network"])
+        self.address = embit_utils.get_single_sig_address(xpub=xpub, script_type=addr_format["script_type"], index=addr_format["index"], is_change=addr_format["is_change"], embit_network=embit_network)
+
+
+    def run(self):
+        from seedsigner.gui.screens.seed_screens import SeedSignMessageConfirmAddressScreen
+        selected_menu_num = self.run_screen(
+            SeedSignMessageConfirmAddressScreen,
+            derivation_path=self.derivation_path,
+            address=self.address,
+        )
+
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+
+        # User clicked "Sign Message"
+        return Destination(SeedSignMessageSignedMessageQRView)
+
+
+
+class SeedSignMessageSignedMessageQRView(View):
+    """
+    Displays the signed message as a QR code.
+    """
+    def __init__(self):
+        super().__init__()
+        data = self.controller.sign_message_data
+
+        self.seed_num = data["seed_num"]
+        seed = self.controller.get_seed(self.seed_num)
+        derivation_path = data["derivation_path"]
+        message: str = data["message"]
+
+        self.signed_message = embit_utils.sign_message(seed_bytes=seed.seed_bytes, derivation=derivation_path, msg=message.encode())
+
+
+    def run(self):
+        qr_encoder = EncodeQR(qr_type=QRType.SIGN_MESSAGE, signed_message=self.signed_message)
+        
+        self.run_screen(
+            QRDisplayScreen,
+            qr_encoder=qr_encoder,
+        )
+    
+        # cleanup
+        self.controller.resume_main_flow = None
+        self.controller.sign_message_data = None
+
+        # Exiting/Canceling the QR display screen always returns Home
+        return Destination(MainMenuView, skip_current_view=True)
