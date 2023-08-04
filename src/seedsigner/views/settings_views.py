@@ -1,4 +1,5 @@
 print("settings_views.py")
+import logging
 
 from seedsigner.gui.components import SeedSignerCustomIconConstants
 
