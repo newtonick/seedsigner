@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: extract_messages
+        name: Regenerate messages.pot
+        language: system
+        entry: bash -eo pipefail -c "python3 l10n/extract_messages.py"
+        files: ^src/
+        require_serial: true
+        stages: [pre-commit]
