@@ -220,7 +220,7 @@ class ScanInvalidQRTypeView(View):
         # changed to something softer.
         self.run_screen(
             WarningScreen,
-            title=_("Error"),
+            title=_("ErrorT"),
             status_headline=_("Unknown QR Type"),
             text=_("QRCode is invalid or is a data format not yet supported."),
             button_data=[ButtonOption("Done")],
