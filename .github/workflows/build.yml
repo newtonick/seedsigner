@@ -30,6 +30,13 @@ jobs:
       matrix:
         target: [ "pi0", "pi2", "pi02w", "pi4" ]
     steps:
+      - name: free up additional disk space
+        run: |
+          # remove android tools, this can free up 10+ GB of space
+          sudo rm -rf /usr/local/lib/android
+          # remove all .NET SDKs, this can free up a few GB of space
+          sudo rm -rf /usr/share/dotnet
+    
       - name: checkout seedsigner-os
         uses: actions/checkout@v4
         with:
