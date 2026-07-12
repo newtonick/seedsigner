@@ -4,7 +4,9 @@ import os
 import pathlib
 import shutil
 
-from seedsigner.models.settings_definition import SettingsConstants
+# NOTE: No top-level seedsigner imports allowed here. settings_definition builds its
+# Language options at import time, which in external mode imports this module (see
+# get_detected_languages); any import back at settings_definition would be circular.
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,9 @@ class L10nAssets:
         locales are intentionally never deleted (full payload is ~2 MB) so the user
         can switch back to an already-used locale with the card removed.
         """
+        # Import here to avoid a circular import (see note at top of module)
+        from seedsigner.models.settings_definition import SettingsConstants
+
         if cls.has_bundled_assets():
             return True
 

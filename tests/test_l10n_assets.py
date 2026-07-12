@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 from contextlib import contextmanager
 from unittest.mock import patch
 
@@ -44,6 +46,25 @@ def sandboxed_asset_dirs(tmp_path, bundled_locales: list[str] = None):
 
 
 class TestL10nAssets(BaseTest):
+    def test_import_settings_in_external_mode(self):
+        """
+        Regression test: importing the settings module with no bundled translations
+        (i.e. on a SeedSigner OS build) must not raise. settings_definition builds
+        its Language options at import time, which pulls in L10nAssets; a top-level
+        import back at settings_definition from l10n_assets is circular and only
+        blows up in external mode (device crash-loop at boot).
+        """
+        script = (
+            "from unittest.mock import patch\n"
+            # Force get_detected_languages' bundled-assets scan to come up empty,
+            # exactly like a rootfs whose translations were stripped at build time
+            "patch('os.walk', return_value=[]).start()\n"
+            "import seedsigner.models.settings\n"
+        )
+        result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+        assert result.returncode == 0, f"import failed in external mode:\n{result.stderr}"
+
+
     def test_bundled_mode(self, tmp_path):
         """ With bundled translations present, external-asset logic should no-op """
         with sandboxed_asset_dirs(tmp_path, bundled_locales=["es"]):
