@@ -208,6 +208,13 @@ class SettingsConstants:
                 # Isolate the language code from the path
                 locales_present.add(root.rsplit(os.sep, 2)[-2])
 
+        if not locales_present:
+            # No bundled translations (SeedSigner OS builds ship them on the microsd
+            # card instead); offer the locales available externally.
+            # Import here to avoid a circular import.
+            from seedsigner.models.l10n_assets import L10nAssets
+            locales_present = L10nAssets.get_external_locales()
+
         for locale in cls.ALL_LOCALES.keys():
             if locale in locales_present:
                 detected_languages.append((locale, cls.ALL_LOCALES[locale]))
@@ -771,6 +778,17 @@ class SettingsDefinition:
         for entry in cls.settings_entries:
             if entry.attr_name == attr_name:
                 return entry
+
+
+    @classmethod
+    def refresh_locale_options(cls):
+        """
+        Recomputes the Language setting's options. `settings_entries` is built at
+        import time, but when the l10n assets live on the microsd card the available
+        locales change with the card state (see L10nAssets).
+        """
+        entry = cls.get_settings_entry(SettingsConstants.SETTING__LOCALE)
+        entry.selection_options = SettingsConstants.get_detected_languages()
 
 
     @classmethod

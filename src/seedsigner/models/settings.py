@@ -2,11 +2,11 @@ import gettext
 import logging
 import json
 import os
-import pathlib
 import platform
 
 from typing import List
 
+from seedsigner.models.l10n_assets import L10nAssets
 from seedsigner.models.settings_definition import SettingsConstants, SettingsDefinition
 from seedsigner.models.singleton import Singleton
 
@@ -38,14 +38,10 @@ class Settings(Singleton):
                 with open(Settings.SETTINGS_FILENAME) as settings_file:
                     settings.update(json.load(settings_file))
 
-            # Setup multilanguage support
-            path = os.path.join(
-                pathlib.Path(__file__).parent.resolve().parent.resolve(),
-                "resources",
-                "seedsigner-translations",
-                "l10n"
-            )
-            gettext.bindtextdomain('messages', localedir=path)
+            # Setup multilanguage support; localedir is the bundled translations
+            # submodule when present, else the tmpfs cache fed from the microsd card
+            # (see L10nAssets)
+            gettext.bindtextdomain('messages', localedir=L10nAssets.gettext_localedir())
             gettext.textdomain('messages')
 
             # Load default/persistent locale setting
@@ -256,6 +252,20 @@ class Settings(Singleton):
 
     def load_locale(self):
         locale = self.get_value(SettingsConstants.SETTING__LOCALE)
+
+        if not L10nAssets.has_bundled_assets():
+            if L10nAssets.refresh_cache(locale):
+                # Clear gettext's internal cache; lookups that ran before the .mo
+                # landed in the cache dir may have negative-cached this locale.
+                if hasattr(gettext, "_translations"):
+                    gettext._translations.clear()
+            else:
+                # Assets unavailable (card removed or not mounted yet). Run in
+                # English at runtime WITHOUT mutating the persisted setting so the
+                # chosen locale recovers when the card is (re)inserted.
+                logger.warning(f"l10n assets for '{locale}' unavailable; falling back to English")
+                locale = SettingsConstants.LOCALE__ENGLISH
+
         os.environ['LANGUAGE'] = locale
 
         # Re-initialize with the new locale
@@ -300,6 +310,13 @@ class Settings(Singleton):
                     Settings.get_instance()._data[SettingsConstants.SETTING__PERSISTENT_SETTINGS] = SettingsConstants.OPTION__ENABLED
                     Settings.get_instance().save()
 
+                if not L10nAssets.has_bundled_assets():
+                    # The card carries the l10n assets; retry populating the tmpfs
+                    # cache (recovers the persisted locale after a boot-time miss)
+                    # and expose the card's locales in the Language options.
+                    Settings.get_instance().load_locale()
+                    SettingsDefinition.refresh_locale_options()
+
             elif action == MicroSD.ACTION__REMOVED:
                 # SD card was just removed.
                 # Set persistent settings to disabled value directly
@@ -309,6 +326,10 @@ class Settings(Singleton):
                 entry = SettingsDefinition.get_settings_entry(SettingsConstants.SETTING__PERSISTENT_SETTINGS)
                 entry.selection_options = SettingsConstants.OPTIONS__ONLY_DISABLED
                 entry.help_text = SettingsConstants.PERSISTENT_SETTINGS__SD_REMOVED__HELP_TEXT
-            
+
+                if not L10nAssets.has_bundled_assets():
+                    # Locales that were never cached are no longer available
+                    SettingsDefinition.refresh_locale_options()
+
             else:
                 raise Exception(f"Invalid MicroSD action: {action}")

@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import Any, List, Tuple
 
 from seedsigner.gui.renderer import Renderer
+from seedsigner.models.l10n_assets import L10nAssets
 from seedsigner.models.settings import Settings
 from seedsigner.models.settings_definition import SettingsConstants
 from seedsigner.models.singleton import Singleton
@@ -261,7 +262,10 @@ class Fonts(Singleton):
             "resources",
             "seedsigner-translations",
             "fonts"
-        )
+        ),
+        # Locale fonts cached from the microsd card when the above aren't bundled
+        # (see L10nAssets)
+        L10nAssets.CACHE_FONTS_DIR,
     ]
     fonts = {}
 
@@ -289,7 +293,14 @@ class Fonts(Singleton):
 
             # throw error at this point if font object was unable to be loaded
             if size not in cls.fonts[font_name]:
-                if "cannot open resource" in str(captured_exception):
+                if font_name != GUIConstants.BASE_LOCALE_FONTS["default"] and font_name in GUIConstants.BASE_LOCALE_FONTS.values():
+                    # A missing locale font (e.g. l10n assets live on the microsd
+                    # card and aren't cached yet) shouldn't crash the device; render
+                    # with the default font instead. `L10nAssets.refresh_cache` evicts
+                    # this fallback entry once the real font is available.
+                    logger.warning(f"Locale font {font_name}.{file_extension} not found; falling back to {GUIConstants.BASE_LOCALE_FONTS['default']}")
+                    cls.fonts[font_name][size] = cls.get_font(GUIConstants.BASE_LOCALE_FONTS["default"], size)
+                elif "cannot open resource" in str(captured_exception):
                     raise Exception(f"Font {font_name}.{file_extension} not found: {repr(captured_exception)}")
                 else:
                     raise captured_exception
